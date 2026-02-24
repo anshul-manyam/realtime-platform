@@ -1,0 +1,163 @@
+version: '3.8'
+
+networks:
+  realtime-network:
+
+services:
+
+  # ========================
+  # ZOOKEEPER
+  # ========================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    networks:
+      - realtime-network
+
+  # ========================
+  # KAFKA
+  # ========================
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - realtime-network
+
+  # ========================
+  # POSTGRES
+  # ========================
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: events_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    networks:
+      - realtime-network
+
+  # ========================
+  # REDIS
+  # ========================
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - realtime-network
+
+  # ========================
+  # PROCESSING SERVICE
+  # ========================
+  processing-service:
+    build: ./processing-service/processing
+    container_name: processing-service
+    depends_on:
+      - kafka
+      - postgres
+    ports:
+      - "8081:8081"
+    networks:
+      - realtime-network
+
+  # ========================
+  # ELASTICSEARCH
+  # ========================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    networks:
+      - realtime-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
+      interval: 10s
+      retries: 5
+
+  # ========================
+  # KIBANA
+  # ========================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    networks:
+      - realtime-network
+
+  # ========================
+  # PROMETHEUS
+  # ========================
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - realtime-network
+
+  # ========================
+  # GRAFANA
+  # ========================
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - realtime-network
+
+
+  api-service:
+    build: ./api-service
+    container_name: api-service
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    networks:
+      - realtime-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.0
+    container_name: logstash
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - realtime-network

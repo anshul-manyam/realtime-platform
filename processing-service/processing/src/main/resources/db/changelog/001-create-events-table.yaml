@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-events-table
+      author: anshul
+
+      changes:
+        - createTable:
+            tableName: events
+
+            columns:
+              - column:
+                  name: event_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: type
+                  type: varchar(100)
+
+              - column:
+                  name: amount
+                  type: decimal
+
+              - column:
+                  name: status
+                  type: varchar(50)
+
+              - column:
+                  name: created_at
+                  type: timestamp
