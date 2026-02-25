@@ -1,46 +1,109 @@
+#spring:
+#  application:
+#    name: processing
+#
+##  datasource:
+##    url: jdbc:postgresql://postgres:5432/events_db
+##    username: user
+##    password: password
+#  datasource:
+#    url: ${DATABASE_URL}
+#    username: ${PGUSER}
+#    password: ${PGPASSWORD}
+#
+#  jpa:
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        jdbc:
+#          time_zone: Asia/Kolkata
+#
+#  liquibase:
+#    change-log: classpath:db/changelog/db.changelog-master.yaml
+#
+#
+#  kafka:
+##    bootstrap-servers: kafka:9092
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+#
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#
+#      properties:
+#        spring.json.add.type.headers: false
+#        security.protocol: SASL_SSL
+#        sasl.mechanism: PLAIN
+#        sasl.jaas.config: >
+#          org.apache.kafka.common.security.plain.PlainLoginModule required
+#          username="${KAFKA_API_KEY}"
+#          password="${KAFKA_API_SECRET}";
+#
+#    consumer:
+#      group-id: event-processing-group-v2   # change group to avoid old data
+#      auto-offset-reset: earliest
+#
+#      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+#      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+#
+#      properties:
+#        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+#        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+#
+#        spring.json.trusted.packages: "*"
+#        spring.json.value.default.type: com.realtime.processing.model.Event
+#
+#server:
+#  port: 8081
+#  address: 0.0.0.0
+#
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: "*"
+#
+#  endpoint:
+#    prometheus:
+#      access: unrestricted
+#
+#  metrics:
+#    export:
+#      prometheus:
+#        enabled: true
+
 spring:
   application:
     name: processing
 
-#  datasource:
-#    url: jdbc:postgresql://postgres:5432/events_db
-#    username: user
-#    password: password
   datasource:
-    url: ${DATABASE_URL}
-    username: ${PGUSER}
-    password: ${PGPASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     show-sql: true
     properties:
       hibernate:
         jdbc:
-          time_zone: Asia/Kolkata
+          time_zone: UTC
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
-
   kafka:
-#    bootstrap-servers: kafka:9092
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-      properties:
-        spring.json.add.type.headers: false
-        security.protocol: SASL_SSL
-        sasl.mechanism: PLAIN
-        sasl.jaas.config: >
-          org.apache.kafka.common.security.plain.PlainLoginModule required
-          username="${KAFKA_API_KEY}"
-          password="${KAFKA_API_SECRET}";
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: >
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username='${KAFKA_API_KEY}'
+        password='${KAFKA_API_SECRET}';
 
     consumer:
-      group-id: event-processing-group-v2   # change group to avoid old data
+      group-id: event-processing-group-v2
       auto-offset-reset: earliest
 
       key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
