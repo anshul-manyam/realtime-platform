@@ -131,8 +131,16 @@ management:
         include: "*"
 
   endpoint:
-    prometheus:
-      access: unrestricted
+    health:
+      show-details: always
+      probes:
+        enabled: true   # enables liveness & readiness
+
+  health:
+    db:
+      enabled: false     # TEMP: avoid failure if DB not ready
+    kafka:
+      enabled: false     # TEMP: avoid failure if Kafka not ready
 
   metrics:
     export:

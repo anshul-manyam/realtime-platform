@@ -18,10 +18,13 @@ public class EventConsumer {
     private static final Logger log = LoggerFactory.getLogger(EventConsumer.class);
 
     private final EventRepository eventRepository;
-
     private final MeterRegistry meterRegistry;
 
-    @KafkaListener(topics = "events-topic-v2", containerFactory = "kafkaListenerContainerFactory", groupId = "event-processing-group-v2")
+    @KafkaListener(
+            topics = "events-topic-v2",
+            containerFactory = "kafkaListenerContainerFactory",
+            groupId = "event-processing-group-v2"
+    )
     @Transactional
     public void consume(Event event) {
 
@@ -31,14 +34,21 @@ public class EventConsumer {
         log.info("Received event: {}", event);
 
         try {
+            // 🔥 Validation
             if (event.getAmount() > 300) {
                 throw new RuntimeException("Invalid amount");
             }
 
+            // 🔥 Convert to entity
+            EventEntity entity = mapToEntity(event);
+
+            // 🔥 Save to DB
+            eventRepository.save(entity);
+
+            log.info("Event saved to DB: {}", entity.getEventId());
+
             // Metric
             meterRegistry.counter("kafka.events.processed").increment();
-
-            log.info("Processed event successfully: {}", event);
 
         } catch (Exception e) {
 
@@ -46,7 +56,19 @@ public class EventConsumer {
             meterRegistry.counter("kafka.events.failed").increment();
 
             log.error("Failed processing event: {}", event, e);
+
+            // 🔥 IMPORTANT → rethrow for retry & DLQ
             throw e;
         }
+    }
+
+    private EventEntity mapToEntity(Event event) {
+        return EventEntity.builder()
+                .eventId(event.getEventId())
+                .type(event.getType())
+                .amount(event.getAmount())
+                .status(event.getStatus())
+                .createdAt(event.getCreatedAt())
+                .build();
     }
 }
