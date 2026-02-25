@@ -121,7 +121,7 @@ spring:
         spring.json.value.default.type: com.realtime.processing.model.Event
 
 server:
-  port: 8081
+  port: ${PORT:8081}
   address: 0.0.0.0
 
 management:
