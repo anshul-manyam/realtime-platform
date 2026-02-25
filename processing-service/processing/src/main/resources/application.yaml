@@ -2,10 +2,14 @@ spring:
   application:
     name: processing
 
+#  datasource:
+#    url: jdbc:postgresql://postgres:5432/events_db
+#    username: user
+#    password: password
   datasource:
-    url: jdbc:postgresql://postgres:5432/events_db
-    username: user
-    password: password
+    url: ${DATABASE_URL}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
 
   jpa:
     show-sql: true
@@ -19,7 +23,8 @@ spring:
 
 
   kafka:
-    bootstrap-servers: kafka:9092
+#    bootstrap-servers: kafka:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -27,6 +32,12 @@ spring:
 
       properties:
         spring.json.add.type.headers: false
+        security.protocol: SASL_SSL
+        sasl.mechanism: PLAIN
+        sasl.jaas.config: >
+          org.apache.kafka.common.security.plain.PlainLoginModule required
+          username="${KAFKA_API_KEY}"
+          password="${KAFKA_API_SECRET}";
 
     consumer:
       group-id: event-processing-group-v2   # change group to avoid old data
