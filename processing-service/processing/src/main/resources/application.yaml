@@ -102,6 +102,10 @@ spring:
         username='${KAFKA_API_KEY}'
         password='${KAFKA_API_SECRET}';
 
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
     consumer:
       group-id: event-processing-group-v2
       auto-offset-reset: earliest
